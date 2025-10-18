@@ -14,11 +14,11 @@ type Ambassador = {
 type Props = {
   data: Ambassador[];
   searchQuery: string;
-  selectedCountry: string;
+  selectedCountry: string;       // gunakan "all" untuk semua negara
   scoreRange: [number, number];
 };
 
-// formatter angka konsisten
+// formatter angka
 const nfInt = new Intl.NumberFormat("en-US");
 
 export function LeaderboardTable({
@@ -31,14 +31,18 @@ export function LeaderboardTable({
   const visible = useMemo(() => {
     const [minScore, maxScore] = scoreRange;
 
+    const q = searchQuery.trim().toLowerCase();
+
     let rows = data.filter((r) => {
-      const q = searchQuery.trim().toLowerCase();
       const matchSearch =
         !q ||
         r.name.toLowerCase().includes(q) ||
-        r.handle.toLowerCase().includes(q);
-      const matchCountry = !selectedCountry || r.country === selectedCountry;
-      const matchScore = r.score >= minScore && r.score <= maxScore;
+        r.handle.toLowerCase().includes(q) ||
+        r.country.toLowerCase().includes(q);
+      // treat "all" as no filter
+      const matchCountry =
+        !selectedCountry || selectedCountry === "all" || r.country === selectedCountry;
+      const matchScore = (r.score ?? 0) >= minScore && (r.score ?? 0) <= maxScore;
       return matchSearch && matchCountry && matchScore;
     });
 
@@ -73,8 +77,8 @@ export function LeaderboardTable({
       row.name,
       row.handle,
       row.country,
-      String(row.invites),
-      Number(row.score || 0).toFixed(3),
+      String(row.invites ?? 0),
+      Number(row.score ?? 0).toFixed(3),
     ]);
 
     const csv =
@@ -156,84 +160,101 @@ export function LeaderboardTable({
   }
 
   return (
-    <div className="rounded-xl border border-amber-500/20 backdrop-blur-md bg-black/60 overflow-hidden">
-      <table className="min-w-full">
-        <thead className="bg-black/40">
-          <tr className="text-amber-400 text-sm">
-            <th className="px-6 py-4 text-left">Rank</th>
-            <th className="px-6 py-4 text-left">Name</th>
-            <th className="px-6 py-4 text-left">Handle</th>
-            <th className="px-6 py-4 text-left">Country</th>
-            <th className="px-6 py-4 text-right">Invites</th>
-            <th className="px-6 py-4 text-right">Score</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-amber-500/10">
-          {pageRows.map((row, idx) => (
-            <tr key={row.id} className="text-gray-200">
-              {/* Rank global (ikut filter & sort) */}
-              <td className="px-6 py-4">{startIdx + idx + 1}</td>
+    <div className="rounded-xl border border-amber-500/20 backdrop-blur-md bg-black/60">
+      {/* ====== SCROLL WRAPPERS ====== */}
+      <div className="overflow-x-auto">
+        <div className="max-h-[70vh] overflow-y-auto">
+          <table className="min-w-full table-auto">
+            <thead className="sticky top-0 bg-black/80 backdrop-blur z-10">
+              <tr className="text-amber-400 text-sm">
+                <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Rank</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Name</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Handle</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Country</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Invites</th>
+                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Score</th>
+              </tr>
+            </thead>
 
-              <td className="px-6 py-4">{row.name}</td>
-              <td className="px-6 py-4 text-gray-400">{row.handle}</td>
-              <td className="px-6 py-4">{row.country}</td>
+            <tbody className="divide-y divide-amber-500/10">
+              {pageRows.map((row, idx) => (
+                <tr key={row.id} className="text-gray-200">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4">{startIdx + idx + 1}</td>
 
-              <td className="px-6 py-4 text-right">
-                {nfInt.format(Number(row.invites || 0))}
-              </td>
+                  {/* biar tidak melebar ke kanan, izinkan wrap */}
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 break-words">
+                    {row.name}
+                  </td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-400 break-words">
+                    {row.handle}
+                  </td>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 break-words">
+                    {row.country}
+                  </td>
 
-              <td className="px-6 py-4 text-right">
-                {Number(row.score || 0).toFixed(3)}
-              </td>
-            </tr>
-          ))}
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                    {nfInt.format(Number(row.invites ?? 0))}
+                  </td>
 
-          {pageRows.length === 0 && (
-            <tr>
-              <td className="px-6 py-10 text-center text-gray-400" colSpan={6}>
-                No results found.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                    {Number(row.score ?? 0).toFixed(3)}
+                  </td>
+                </tr>
+              ))}
 
-      {/* Footer pagination + export */}
-      <div className="flex items-center justify-between px-6 py-4 border-t border-amber-500/10">
-        <div className="text-sm text-gray-400">
-          Showing{" "}
-          <span className="text-amber-400">{total === 0 ? 0 : startIdx + 1}</span>{" "}
-          to{" "}
-          <span className="text-amber-400">{endIdx}</span> of{" "}
-          <span className="text-amber-400">{total}</span> results
+              {pageRows.length === 0 && (
+                <tr>
+                  <td className="px-6 py-10 text-center text-gray-400" colSpan={6}>
+                    No results found.
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
+      </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            className="px-3 py-1 rounded text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
-            Previous
-          </button>
+      {/* ====== FOOTER: pagination + export (responsive) ====== */}
+      <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-amber-500/10">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-between flex-wrap">
+          <div className="text-sm text-gray-400 order-2 sm:order-1">
+            Showing{" "}
+            <span className="text-amber-400">{total === 0 ? 0 : startIdx + 1}</span>{" "}
+            to{" "}
+            <span className="text-amber-400">{endIdx}</span> of{" "}
+            <span className="text-amber-400">{total}</span> results
+          </div>
 
-          <div className="flex items-center gap-1">{renderPageNumbers()}</div>
+          <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto">
+            <button
+              className="px-3 py-1 rounded border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 disabled:opacity-40"
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+            >
+              Previous
+            </button>
 
-          <button
-            className="px-3 py-1 rounded text-amber-400 hover:bg-amber-500/10 disabled:opacity-40"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
-            Next
-          </button>
+            <div className="flex items-center gap-1">{renderPageNumbers()}</div>
 
-          <button
-            onClick={exportCSV}
-            className="ml-4 px-3 py-1 rounded bg-amber-500 text-black hover:brightness-110"
-            title="Export current page to CSV"
-          >
-            Export CSV
-          </button>
+            <button
+              className="px-3 py-1 rounded border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 disabled:opacity-40"
+              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+              disabled={page === totalPages}
+            >
+              Next
+            </button>
+
+            {/* dorong tombol export ke kanan saat layar sempit */}
+            <div className="ms-auto sm:ms-0">
+              <button
+                onClick={exportCSV}
+                className="px-3 py-2 rounded bg-amber-500 text-black font-semibold hover:brightness-110"
+                title="Export current page to CSV"
+              >
+                Export CSV
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
