@@ -21,7 +21,7 @@ export function LeaderboardFilters({
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCountry, setSelectedCountry] = useState("all")
   const [minScore, setMinScore] = useState("0")
-  const [maxScore, setMaxScore] = useState("10000")
+  const [maxScore, setMaxScore] = useState("0")
 
   const countries = useMemo(() => {
     const unique = Array.from(new Set(data.map((amb) => amb.country))).sort()
