@@ -20,8 +20,8 @@ export function LeaderboardFilters({
 }: LeaderboardFiltersProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCountry, setSelectedCountry] = useState("all");
-  const [minScore, setMinScore] = useState<string>("");
-  const [maxScore, setMaxScore] = useState<string>("");
+  const [minScore, setMinScore] = useState<string>("0");
+  const [maxScore, setMaxScore] = useState<string>("100000");
 
   const countries = useMemo(() => {
     const unique = Array.from(new Set((data ?? []).map((amb) => amb.country))).sort();
