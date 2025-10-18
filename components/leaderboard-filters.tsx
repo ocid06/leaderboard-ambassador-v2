@@ -20,8 +20,9 @@ export function LeaderboardFilters({
 }: LeaderboardFiltersProps) {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCountry, setSelectedCountry] = useState("all")
-  const [minScore, setMinScore] = useState("0")
-  const [maxScore, setMaxScore] = useState("0")
+  // 👉 biarkan input kosong saat pertama kali load
+  const [minScore, setMinScore] = useState<string>("")
+  const [maxScore, setMaxScore] = useState<string>("")
 
   const countries = useMemo(() => {
     const unique = Array.from(new Set(data.map((amb) => amb.country))).sort()
@@ -29,7 +30,9 @@ export function LeaderboardFilters({
   }, [data])
 
   const maxScoreInData = useMemo(() => {
-    return Math.max(...data.map((amb) => amb.score))
+    // fallback aman kalau data kosong
+    const scores = data.map((amb) => amb.score).filter((n) => typeof n === "number")
+    return scores.length ? Math.max(...scores) : 0
   }, [data])
 
   const handleSearchChange = (value: string) => {
@@ -43,15 +46,20 @@ export function LeaderboardFilters({
   }
 
   const handleMinScoreChange = (value: string) => {
-    const num = Number.parseInt(value) || 0
     setMinScore(value)
-    onScoreRangeChange([num, Number.parseInt(maxScore) || maxScoreInData])
+    // jika kosong, anggap 0; kalau ada angka, pakai angka tsb
+    const minNum = value === "" ? 0 : Number.parseInt(value) || 0
+    // jika max kosong, pakai maxScoreInData; kalau ada angka, pakai angka tsb
+    const maxNum =
+      maxScore === "" ? maxScoreInData : (Number.parseInt(maxScore) || maxScoreInData)
+    onScoreRangeChange([minNum, maxNum])
   }
 
   const handleMaxScoreChange = (value: string) => {
-    const num = Number.parseInt(value) || maxScoreInData
     setMaxScore(value)
-    onScoreRangeChange([Number.parseInt(minScore) || 0, num])
+    const maxNum = value === "" ? maxScoreInData : (Number.parseInt(value) || maxScoreInData)
+    const minNum = minScore === "" ? 0 : (Number.parseInt(minScore) || 0)
+    onScoreRangeChange([minNum, maxNum])
   }
 
   return (
@@ -90,14 +98,14 @@ export function LeaderboardFilters({
             <Input
               type="number"
               placeholder="Min"
-              value={minScore}
+              value={minScore}                               {/* ← kosong di awal */}
               onChange={(e) => handleMinScoreChange(e.target.value)}
               className="bg-black/40 border-amber-500/20 text-white placeholder:text-gray-500 focus:border-amber-500/50"
             />
             <Input
               type="number"
-              placeholder="Max"
-              value={maxScore}
+              placeholder="Max"                               {/* contoh saja, bukan default */}
+              value={maxScore}                               {/* ← kosong di awal */}
               onChange={(e) => handleMaxScoreChange(e.target.value)}
               className="bg-black/40 border-amber-500/20 text-white placeholder:text-gray-500 focus:border-amber-500/50"
             />
