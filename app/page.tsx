@@ -1,24 +1,14 @@
 "use client"
 
-<<<<<<< HEAD
-import { useState, useMemo } from "react"
-import { generateMockAmbassadors } from "@/lib/mock-data"
-import { LeaderboardFilters } from "@/components/leaderboard-filters"
-import { LeaderboardTable } from "@/components/leaderboard-table"
-
-export default function Home() {
-  const ambassadors = useMemo(() => generateMockAmbassadors(), [])
-
-=======
 import { useEffect, useMemo, useState } from "react"
 import { createClient } from "@supabase/supabase-js"
 import { LeaderboardFilters } from "@/components/leaderboard-filters"
 import { LeaderboardTable } from "@/components/leaderboard-table"
 
-// formatter angka yang konsisten (hindari hydration error)
+// formatter angka konsisten (hindari hydration error)
 const nf = new Intl.NumberFormat("en-US")
 
-// ✅ Buat client Supabase langsung di file ini (paling aman)
+// Supabase client (public)
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -37,31 +27,22 @@ export default function Home() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // state filter
->>>>>>> 7509501 (Connect Supabase + Rank + Pagination (production ready))
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedCountry, setSelectedCountry] = useState("")
   const [scoreRange, setScoreRange] = useState<[number, number]>([0, 10000])
 
-<<<<<<< HEAD
-  const stats = useMemo(() => {
-    const totalInvites = ambassadors.reduce((sum, amb) => sum + amb.invites, 0)
-    const avgScore = Math.round(ambassadors.reduce((sum, amb) => sum + amb.score, 0) / ambassadors.length)
-
-=======
   useEffect(() => {
     async function load() {
       try {
         setLoading(true)
         setError(null)
 
-        // Debug cepat kalau env belum kebaca
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-          throw new Error("Supabase env is missing. Check .env.local")
+          throw new Error("Supabase env is missing. Check NEXT_PUBLIC_SUPABASE_*")
         }
 
         const { data, error } = await supabase
-          .from("Ambassador") // nama tabel kamu (A besar)
+          .from("Ambassador") // nama tabel persis (A besar)
           .select("*")
           .order("score", { ascending: false })
           .order("invites", { ascending: false })
@@ -96,7 +77,6 @@ export default function Home() {
     const avgScore = Math.round(
       ambassadors.reduce((sum, amb) => sum + (amb.score || 0), 0) / ambassadors.length
     )
->>>>>>> 7509501 (Connect Supabase + Rank + Pagination (production ready))
     return { totalInvites, avgScore }
   }, [ambassadors])
 
@@ -132,41 +112,15 @@ export default function Home() {
             </div>
             <div className="rounded-lg border border-amber-500/20 backdrop-blur-md bg-black/70 p-6">
               <div className="text-sm font-medium text-gray-400 mb-2">Total Invites</div>
-<<<<<<< HEAD
-              <div className="text-3xl font-bold text-amber-400">{stats.totalInvites.toLocaleString()}</div>
-            </div>
-            <div className="rounded-lg border border-amber-500/20 backdrop-blur-md bg-black/70 p-6">
-              <div className="text-sm font-medium text-gray-400 mb-2">Average Score</div>
-              <div className="text-3xl font-bold text-amber-400">{stats.avgScore.toLocaleString()}</div>
-=======
               <div className="text-3xl font-bold text-amber-400">{nf.format(stats.totalInvites)}</div>
             </div>
             <div className="rounded-lg border border-amber-500/20 backdrop-blur-md bg-black/70 p-6">
               <div className="text-sm font-medium text-gray-400 mb-2">Average Score</div>
               <div className="text-3xl font-bold text-amber-400">{nf.format(stats.avgScore)}</div>
->>>>>>> 7509501 (Connect Supabase + Rank + Pagination (production ready))
             </div>
           </div>
         </section>
 
-<<<<<<< HEAD
-        {/* Filters and Table */}
-        <section className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
-          <LeaderboardFilters
-            data={ambassadors}
-            onSearchChange={setSearchQuery}
-            onCountryChange={setSelectedCountry}
-            onScoreRangeChange={setScoreRange}
-          />
-
-          <LeaderboardTable
-            data={ambassadors}
-            searchQuery={searchQuery}
-            selectedCountry={selectedCountry}
-            scoreRange={scoreRange}
-          />
-        </section>
-=======
         {/* Loading / Error */}
         {loading && (
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -196,7 +150,6 @@ export default function Home() {
             />
           </section>
         )}
->>>>>>> 7509501 (Connect Supabase + Rank + Pagination (production ready))
 
         {/* Footer */}
         <footer className="border-t border-amber-500/20 backdrop-blur-md bg-black/40 mt-12">
