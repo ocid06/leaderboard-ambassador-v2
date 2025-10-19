@@ -10,6 +10,9 @@ export const metadata: Metadata = {
   title: "CromaArt Leaderboard",
   description: "Ambassador Rankings & Performance",
   generator: "v0.app",
+  icons: {
+    icon: "/favicon-croma.png", // ✅ favicon ditambahkan di sini
+  },
 }
 
 export default function RootLayout({
