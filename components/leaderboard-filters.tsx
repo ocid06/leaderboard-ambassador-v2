@@ -3,13 +3,28 @@
 import { useState, useMemo } from "react";
 import type { Ambassador } from "@/lib/mock-data";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface LeaderboardFiltersProps {
   data: Ambassador[];
   onSearchChange: (query: string) => void;
-  onCountryChange: (country: string) => void;
+  onCountryChange: (country: string) => void;     // kirim value lowercase/trim
   onScoreRangeChange: (range: [number, number]) => void;
+}
+
+// helper: ubah ke Title Case untuk label
+function toTitleCase(s: string) {
+  return s
+    .toLowerCase()
+    .split(" ")
+    .map((w) => (w ? w[0].toUpperCase() + w.slice(1) : w))
+    .join(" ");
 }
 
 export function LeaderboardFilters({
@@ -23,9 +38,24 @@ export function LeaderboardFilters({
   const [minScore, setMinScore] = useState<string>("0");
   const [maxScore, setMaxScore] = useState<string>("100000");
 
+  // ====== Countries unik & bersih ======
+  // value: lowercase+trim (untuk filter)
+  // label: Title Case (untuk tampilan)
   const countries = useMemo(() => {
-    const unique = Array.from(new Set((data ?? []).map((amb) => amb.country))).sort();
-    return unique;
+    const map = new Map<string, string>(); // key = value(lowercase), val = label(Title Case)
+
+    for (const amb of data ?? []) {
+      const raw = (amb.country ?? "").trim();
+      if (!raw) continue;
+      const key = raw.toLowerCase(); // normalisasi
+      if (!map.has(key)) {
+        map.set(key, toTitleCase(raw));
+      }
+    }
+
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [data]);
 
   const maxScoreInData = useMemo(() => {
@@ -41,6 +71,7 @@ export function LeaderboardFilters({
   };
 
   const handleCountryChange = (value: string) => {
+    // value sudah lowercase & trimmed
     setSelectedCountry(value);
     onCountryChange(value);
   };
@@ -48,13 +79,15 @@ export function LeaderboardFilters({
   const handleMinScoreChange = (value: string) => {
     setMinScore(value);
     const minNum = value === "" ? 0 : Number.parseInt(value) || 0;
-    const maxNum = maxScore === "" ? maxScoreInData : Number.parseInt(maxScore) || maxScoreInData;
+    const maxNum =
+      maxScore === "" ? maxScoreInData : Number.parseInt(maxScore) || maxScoreInData;
     onScoreRangeChange([minNum, maxNum]);
   };
 
   const handleMaxScoreChange = (value: string) => {
     setMaxScore(value);
-    const maxNum = value === "" ? maxScoreInData : Number.parseInt(value) || maxScoreInData;
+    const maxNum =
+      value === "" ? maxScoreInData : Number.parseInt(value) || maxScoreInData;
     const minNum = minScore === "" ? 0 : Number.parseInt(minScore) || 0;
     onScoreRangeChange([minNum, maxNum]);
   };
@@ -73,16 +106,21 @@ export function LeaderboardFilters({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Country</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Country
+          </label>
           <Select value={selectedCountry} onValueChange={handleCountryChange}>
             <SelectTrigger className="bg-black/40 border-amber-500/20 text-white">
               <SelectValue placeholder="All countries" />
             </SelectTrigger>
             <SelectContent className="bg-black/90 border-amber-500/20">
+              {/* nilai 'all' untuk menampilkan semua */}
               <SelectItem value="all">All countries</SelectItem>
-              {countries.map((country) => (
-                <SelectItem key={country} value={country}>
-                  {country}
+
+              {/* negara unik & rapi */}
+              {countries.map((c) => (
+                <SelectItem key={c.value} value={c.value}>
+                  {c.label}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -90,7 +128,9 @@ export function LeaderboardFilters({
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-300 mb-2">Score Range</label>
+          <label className="block text-sm font-medium text-gray-300 mb-2">
+            Score Range
+          </label>
           <div className="flex gap-2">
             <Input
               type="number"

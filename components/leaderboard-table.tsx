@@ -14,7 +14,7 @@ type Ambassador = {
 type Props = {
   data: Ambassador[];
   searchQuery: string;
-  selectedCountry: string;       // gunakan "all" untuk semua negara
+  selectedCountry: string; // gunakan "all" untuk semua negara
   scoreRange: [number, number];
 };
 
@@ -30,19 +30,27 @@ export function LeaderboardTable({
   // ====== Filter + Sort ======
   const visible = useMemo(() => {
     const [minScore, maxScore] = scoreRange;
-
     const q = searchQuery.trim().toLowerCase();
 
+    // normalisasi country untuk filter (atasi spasi & kapitalisasi)
+    const selCountry = (selectedCountry ?? "").trim().toLowerCase();
+
     let rows = data.filter((r) => {
+      const name = (r.name ?? "").toLowerCase();
+      const handle = (r.handle ?? "").toLowerCase();
+      const country = (r.country ?? "").toLowerCase();
+
       const matchSearch =
-        !q ||
-        r.name.toLowerCase().includes(q) ||
-        r.handle.toLowerCase().includes(q) ||
-        r.country.toLowerCase().includes(q);
-      // treat "all" as no filter
+        !q || name.includes(q) || handle.includes(q) || country.includes(q);
+
       const matchCountry =
-        !selectedCountry || selectedCountry === "all" || r.country === selectedCountry;
-      const matchScore = (r.score ?? 0) >= minScore && (r.score ?? 0) <= maxScore;
+        !selCountry ||
+        selCountry === "all" ||
+        country.trim().toLowerCase() === selCountry;
+
+      const s = Number(r.score ?? 0);
+      const matchScore = s >= minScore && s <= maxScore;
+
       return matchSearch && matchCountry && matchScore;
     });
 
@@ -51,8 +59,8 @@ export function LeaderboardTable({
       .slice()
       .sort(
         (a, b) =>
-          (b.score ?? 0) - (a.score ?? 0) ||
-          (b.invites ?? 0) - (a.invites ?? 0)
+          (Number(b.score) || 0) - (Number(a.score) || 0) ||
+          (Number(b.invites) || 0) - (Number(a.invites) || 0)
       );
 
     return rows;
@@ -81,18 +89,17 @@ export function LeaderboardTable({
       Number(row.score ?? 0).toFixed(3),
     ]);
 
-    const csv =
-      [header, ...body]
-        .map((r) =>
-          r
-            .map((field) => {
-              const s = String(field ?? "");
-              if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
-              return s;
-            })
-            .join(",")
-        )
-        .join("\n");
+    const csv = [header, ...body]
+      .map((r) =>
+        r
+          .map((field) => {
+            const s = String(field ?? "");
+            if (/[",\n]/.test(s)) return `"${s.replace(/"/g, '""')}"`;
+            return s;
+          })
+          .join(",")
+      )
+      .join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -161,18 +168,25 @@ export function LeaderboardTable({
 
   return (
     <div className="rounded-xl border border-amber-500/20 backdrop-blur-md bg-black/60">
-      {/* ====== SCROLL WRAPPERS ====== */}
-      <div className="overflow-x-auto">
-        <div className="max-h-[70vh] overflow-y-auto">
-          <table className="min-w-full table-auto">
+      {/* ====== SCROLL WRAPPERS ======
+          Mobile: horiz scroll only (no vertical scroll to avoid double-scroll)
+          Desktop (md+): allow vertical scroll with max height
+      */}
+      <div className="w-full overflow-x-auto">
+        <div className="md:max-h-[70vh] md:overflow-y-auto">
+          <table className="min-w-[640px] w-full table-auto">
             <thead className="sticky top-0 bg-black/80 backdrop-blur z-10">
               <tr className="text-amber-400 text-sm">
                 <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Rank</th>
                 <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Name</th>
                 <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Handle</th>
                 <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Country</th>
-                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Invites</th>
-                <th className="px-4 sm:px-6 py-3 sm:py-4 text-right">Score</th>
+                <th className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
+                  Invites
+                </th>
+                <th className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
+                  Score
+                </th>
               </tr>
             </thead>
 
@@ -181,7 +195,7 @@ export function LeaderboardTable({
                 <tr key={row.id} className="text-gray-200">
                   <td className="px-4 sm:px-6 py-3 sm:py-4">{startIdx + idx + 1}</td>
 
-                  {/* biar tidak melebar ke kanan, izinkan wrap */}
+                  {/* biar tidak melebar, izinkan wrap untuk teks panjang */}
                   <td className="px-4 sm:px-6 py-3 sm:py-4 break-words">
                     {row.name}
                   </td>
@@ -192,11 +206,11 @@ export function LeaderboardTable({
                     {row.country}
                   </td>
 
-                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                  <td className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
                     {nfInt.format(Number(row.invites ?? 0))}
                   </td>
 
-                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-right">
+                  <td className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
                     {Number(row.score ?? 0).toFixed(3)}
                   </td>
                 </tr>
@@ -214,8 +228,8 @@ export function LeaderboardTable({
         </div>
       </div>
 
-      {/* ====== FOOTER: pagination + export (responsive) ====== */}
-      <div className="px-4 sm:px-6 py-3 sm:py-4 border-t border-amber-500/10">
+      {/* ====== FOOTER: pagination + export (sticky) ====== */}
+      <div className="sticky bottom-0 left-0 right-0 z-40 px-4 sm:px-6 py-3 sm:py-4 border-t border-amber-500/10 bg-black/70 backdrop-blur">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-between flex-wrap">
           <div className="text-sm text-gray-400 order-2 sm:order-1">
             Showing{" "}
@@ -244,7 +258,6 @@ export function LeaderboardTable({
               Next
             </button>
 
-            {/* dorong tombol export ke kanan saat layar sempit */}
             <div className="ms-auto sm:ms-0">
               <button
                 onClick={exportCSV}
