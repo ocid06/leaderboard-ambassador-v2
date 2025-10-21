@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, ReactNode } from "react";
 
 type Ambassador = {
   id: string;
@@ -79,15 +79,9 @@ export function LeaderboardTable({
 
   // ====== Export CSV (rows halaman saat ini) ======
   function exportCSV() {
+    // Export the entire filtered & sorted list (visible), not only the current page
     const header = ["Rank", "Name", "Handle", "Country", "Invites", "Score"];
-    const body = pageRows.map((row, i) => [
-      String(startIdx + i + 1),
-      row.name,
-      row.handle,
-      row.country,
-      String(row.invites ?? 0),
-      Number(row.score ?? 0).toFixed(3),
-    ]);
+    const body = visible.map((row, i) => [String(i + 1), row.name, row.handle, row.country, String(row.invites ?? 0), Number(row.score ?? 0).toFixed(3)]);
 
     const csv = [header, ...body]
       .map((r) =>
@@ -124,10 +118,11 @@ export function LeaderboardTable({
     return (
       <button
         onClick={onClick}
-        className={`px-2.5 py-1 rounded ${
+        aria-current={active ? "page" : undefined}
+        className={`w-8 h-8 flex items-center justify-center text-sm font-medium rounded-md transition-colors duration-150 ${
           active
             ? "bg-amber-500 text-black"
-            : "text-amber-400 hover:bg-amber-500/10"
+            : "text-amber-300 hover:bg-amber-500/10"
         }`}
       >
         {n}
@@ -136,42 +131,44 @@ export function LeaderboardTable({
   }
 
   function renderPageNumbers() {
-    const items: JSX.Element[] = [];
-    const windowSize = 5;
-    const start = Math.max(1, page - 2);
-    const end = Math.min(totalPages, start + windowSize - 1);
+    const items: ReactNode[] = [];
 
-    for (let n = start; n <= end; n++) {
-      items.push(
-        <PageButton key={n} n={n} active={n === page} onClick={() => setPage(n)} />
-      );
+    // Compact pagination: show first, left ellipsis if needed, up to 3 around current, right ellipsis, last
+    if (totalPages <= 7) {
+      for (let n = 1; n <= totalPages; n++) {
+        items.push(
+          <PageButton key={n} n={n} active={n === page} onClick={() => setPage(n)} />
+        );
+      }
+      return items;
     }
 
-    if (end < totalPages) {
-      items.push(
-        <span key="dots" className="px-2 text-amber-400">
-          …
-        </span>
-      );
-      items.push(
-        <PageButton
-          key={totalPages}
-          n={totalPages}
-          active={page === totalPages}
-          onClick={() => setPage(totalPages)}
-        />
-      );
-    }
+    const push = (n: number) =>
+      items.push(<PageButton key={n} n={n} active={n === page} onClick={() => setPage(n)} />);
+
+    // first
+    push(1);
+
+    // left ellipsis
+    if (page > 3) items.push(<span key="left-dots" className="px-2 text-amber-400">…</span>);
+
+    // neighbors (page-1, page, page+1)
+    const start = Math.max(2, page - 1);
+    const end = Math.min(totalPages - 1, page + 1);
+    for (let n = start; n <= end; n++) push(n);
+
+    // right ellipsis
+    if (page < totalPages - 2) items.push(<span key="right-dots" className="px-2 text-amber-400">…</span>);
+
+    // last
+    push(totalPages);
 
     return items;
   }
 
   return (
     <div className="rounded-xl border border-amber-500/20 backdrop-blur-md bg-black/60">
-      {/* ====== SCROLL WRAPPERS ======
-          Mobile: horiz scroll only (no vertical scroll to avoid double-scroll)
-          Desktop (md+): allow vertical scroll with max height
-      */}
+      {/* ====== SCROLL WRAPPERS ====== */}
       <div className="w-full overflow-x-auto">
         <div className="md:max-h-[70vh] md:overflow-y-auto">
           <table className="min-w-[640px] w-full table-auto">
@@ -181,10 +178,10 @@ export function LeaderboardTable({
                 <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Name</th>
                 <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Handle</th>
                 <th className="px-4 sm:px-6 py-3 sm:py-4 text-left">Country</th>
-                <th className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
+                <th className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
                   Invites
                 </th>
-                <th className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
+                <th className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
                   Score
                 </th>
               </tr>
@@ -195,9 +192,14 @@ export function LeaderboardTable({
                 <tr key={row.id} className="text-gray-200">
                   <td className="px-4 sm:px-6 py-3 sm:py-4">{startIdx + idx + 1}</td>
 
-                  {/* biar tidak melebar, izinkan wrap untuk teks panjang */}
                   <td className="px-4 sm:px-6 py-3 sm:py-4 break-words">
-                    {row.name}
+                    <div className="flex flex-col">
+                      <span>{row.name}</span>
+                      {/* compact meta shown on mobile (below md) */}
+                      <span className="text-xs text-gray-400 mt-1 md:hidden">
+                        {nfInt.format(Number(row.invites ?? 0))} invites • {Number(row.score ?? 0).toFixed(0)} score
+                      </span>
+                    </div>
                   </td>
                   <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-400 break-words">
                     {row.handle}
@@ -206,11 +208,11 @@ export function LeaderboardTable({
                     {row.country}
                   </td>
 
-                  <td className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
+                  <td className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
                     {nfInt.format(Number(row.invites ?? 0))}
                   </td>
 
-                  <td className="hidden sm:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
+                  <td className="hidden md:table-cell px-4 sm:px-6 py-3 sm:py-4 text-right">
                     {Number(row.score ?? 0).toFixed(3)}
                   </td>
                 </tr>
@@ -229,7 +231,7 @@ export function LeaderboardTable({
       </div>
 
       {/* ====== FOOTER: pagination + export (sticky) ====== */}
-      <div className="sticky bottom-0 left-0 right-0 z-40 px-4 sm:px-6 py-3 sm:py-4 border-t border-amber-500/10 bg-black/70 backdrop-blur">
+      <div className="sticky bottom-0 left-0 right-0 z-40 px-4 sm:px-6 py-3 sm:py-4 pr-4 sm:pr-6 border-t border-amber-500/10 bg-black/70 backdrop-blur">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 justify-between flex-wrap">
           <div className="text-sm text-gray-400 order-2 sm:order-1">
             Showing{" "}
@@ -239,9 +241,10 @@ export function LeaderboardTable({
             <span className="text-amber-400">{total}</span> results
           </div>
 
-          <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto">
+          <div className="flex items-center gap-2 order-1 sm:order-2 w-full sm:w-auto flex-wrap pr-4">
+            <div className="inline-flex items-center gap-2 bg-black/50 rounded-md p-1">
             <button
-              className="px-3 py-1 rounded border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 disabled:opacity-40"
+              className="px-3 py-1 rounded border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 disabled:opacity-40 mr-2 sm:mr-0"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
             >
@@ -249,6 +252,7 @@ export function LeaderboardTable({
             </button>
 
             <div className="flex items-center gap-1">{renderPageNumbers()}</div>
+            </div>
 
             <button
               className="px-3 py-1 rounded border border-amber-500/30 text-amber-300 hover:bg-amber-500/10 disabled:opacity-40"
@@ -257,16 +261,17 @@ export function LeaderboardTable({
             >
               Next
             </button>
+          </div>
 
-            <div className="ms-auto sm:ms-0">
-              <button
-                onClick={exportCSV}
-                className="px-3 py-2 rounded bg-amber-500 text-black font-semibold hover:brightness-110"
-                title="Export current page to CSV"
-              >
-                Export CSV
-              </button>
-            </div>
+          {/* Export button moved out so it won't get pushed off-screen by pagination */}
+          <div className="order-3 sm:order-3 w-full sm:w-auto mt-2 sm:mt-0 flex justify-end">
+            <button
+              onClick={exportCSV}
+              className="w-full sm:w-auto px-3 py-2 rounded bg-amber-500 text-black font-semibold hover:brightness-110"
+              title="Export current page to CSV"
+            >
+              Export CSV
+            </button>
           </div>
         </div>
       </div>

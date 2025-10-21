@@ -1,53 +1,47 @@
-"use client"
+"use client";
 
-import { useEffect, useMemo, useState } from "react"
-import { createClient } from "@supabase/supabase-js"
-import { LeaderboardFilters } from "@/components/leaderboard-filters"
-import { LeaderboardTable } from "@/components/leaderboard-table"
+import { useEffect, useMemo, useState } from "react";
+import { createClient } from "@supabase/supabase-js";
+import { LeaderboardFilters } from "@/components/leaderboard-filters";
+import { LeaderboardTable } from "@/components/leaderboard-table";
+import type { Ambassador } from "@/lib/mock-data";
 
 // formatter angka konsisten (hindari hydration error)
-const nf = new Intl.NumberFormat("en-US")
+const nf = new Intl.NumberFormat("en-US");
 
 // Supabase client (public)
-const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-type Ambassador = {
-  id: string
-  name: string
-  handle: string
-  country: string
-  invites: number
-  score: number
-}
+// Use shared Ambassador type from lib/mock-data
 
 export default function Home() {
-  const [ambassadors, setAmbassadors] = useState<Ambassador[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [ambassadors, setAmbassadors] = useState<Ambassador[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCountry, setSelectedCountry] = useState("")
-  const [scoreRange, setScoreRange] = useState<[number, number]>([0, 10000])
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCountry, setSelectedCountry] = useState("");
+  const [scoreRange, setScoreRange] = useState<[number, number]>([0, 10000]);
 
   useEffect(() => {
     async function load() {
       try {
-        setLoading(true)
-        setError(null)
+        setLoading(true);
+        setError(null);
 
         if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
-          throw new Error("Supabase env is missing. Check NEXT_PUBLIC_SUPABASE_*")
+          throw new Error("Supabase env is missing. Check NEXT_PUBLIC_SUPABASE_*");
         }
 
         const { data, error } = await supabase
           .from("Ambassador") // nama tabel persis (A besar)
           .select("*")
           .order("score", { ascending: false })
-          .order("invites", { ascending: false })
+          .order("invites", { ascending: false });
 
-        if (error) throw error
+        if (error) throw error;
 
         const rows = (data ?? []).map((d: any) => ({
           id: String(d.id),
@@ -56,29 +50,33 @@ export default function Home() {
           country: String(d.country ?? ""),
           invites: Number(d.invites ?? 0),
           score: Number(d.score ?? 0),
-        })) as Ambassador[]
+          // mock-data.Ambassador requires these fields: provide safe defaults
+          rank: typeof d.rank === "number" ? d.rank : 0,
+          wallet: String(d.wallet ?? ""),
+          bonus_multiplier: Number(d.bonus_multiplier ?? 1),
+        })) as Ambassador[];
 
-        setAmbassadors(rows)
+        setAmbassadors(rows);
       } catch (e: any) {
-        console.error(e)
-        setError(e.message ?? "Failed to load")
-        setAmbassadors([])
+        console.error(e);
+        setError(e.message ?? "Failed to load");
+        setAmbassadors([]);
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
     }
 
-    load()
-  }, [])
+    load();
+  }, []);
 
   const stats = useMemo(() => {
-    if (!ambassadors.length) return { totalInvites: 0, avgScore: 0 }
-    const totalInvites = ambassadors.reduce((sum, amb) => sum + (amb.invites || 0), 0)
+    if (!ambassadors.length) return { totalInvites: 0, avgScore: 0 };
+    const totalInvites = ambassadors.reduce((sum, amb) => sum + (amb.invites || 0), 0);
     const avgScore = Math.round(
       ambassadors.reduce((sum, amb) => sum + (amb.score || 0), 0) / ambassadors.length
-    )
-    return { totalInvites, avgScore }
-  }, [ambassadors])
+    );
+    return { totalInvites, avgScore };
+  }, [ambassadors]);
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-black via-black to-black">
@@ -161,5 +159,5 @@ export default function Home() {
         </footer>
       </div>
     </main>
-  )
+  );
 }
