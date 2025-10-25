@@ -7,4 +7,5 @@ export interface AmbassadorDb {
   score: number; // HAPUS
   created_at: string;
   updated_at: string;
+  referral_code:string;
 }

@@ -192,7 +192,7 @@ export function LeaderboardTable({
                 <tr key={row.id} className="text-gray-200">
                   <td className="px-4 sm:px-6 py-3 sm:py-4">{startIdx + idx + 1}</td>
 
-                  <td className="px-4 sm:px-6 py-3 sm:py-4 break-words">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 wrap-break-words">
                     <div className="flex flex-col">
                       <span>{row.name}</span>
                       {/* compact meta shown on mobile (below md) */}
@@ -201,10 +201,10 @@ export function LeaderboardTable({
                       </span>
                     </div>
                   </td>
-                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-400 break-words">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 text-gray-400 wrap-break-words">
                     {row.handle}
                   </td>
-                  <td className="px-4 sm:px-6 py-3 sm:py-4 break-words">
+                  <td className="px-4 sm:px-6 py-3 sm:py-4 wrap-break-words">
                     {row.country}
                   </td>
 

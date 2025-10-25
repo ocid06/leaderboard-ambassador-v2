@@ -1,4 +1,4 @@
-import HomeTemplates from "@/components/templates/HomeTemplates";
+import HomeTemplates from "@/components/templates/HomeTemplate";
 import { getAllAmbassador } from "@/services/db/ambassador";
 
 export default async function HomePage() {
