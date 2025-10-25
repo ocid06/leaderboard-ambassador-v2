@@ -10,9 +10,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AmbassadorDb } from "@/@types/ambassador";
 
 interface LeaderboardFiltersProps {
-  data: Ambassador[];
+  data: AmbassadorDb[];
   onSearchChange: (query: string) => void;
   onCountryChange: (country: string) => void;     // kirim value lowercase/trim
   onScoreRangeChange: (range: [number, number]) => void;
